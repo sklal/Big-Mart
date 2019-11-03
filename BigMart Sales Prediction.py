@@ -170,8 +170,13 @@ plt.title('Distribution of Outlet Size')
 sns.barplot(x=Outsize[:15].keys(),
             y=Outsize[:15].values, palette="GnBu_d")
 
-
+combined.columns
 combined.dtypes
+
+var_v = ['Item_Fat_Content', 'Outlet_Location_Type', 'Outlet_Size',
+         'Item_Type_Combined', 'Outlet_Type', 'Outlet_Establishment_Year']
+
+
 # Coversion of Nominal Categorical variable into Numerical for Scikit Learn Library
 
 le = LabelEncoder()
@@ -182,6 +187,7 @@ combined['Outlet'] = le.fit_transform(combined['Outlet_Identifier'])
 var_mod = ['Item_Fat_Content', 'Outlet_Location_Type', 'Outlet_Size',
            'Item_Type_Combined', 'Outlet_Type', 'Outlet', 'Outlet_Establishment_Year']
 
+
 for i in var_mod:
     combined[i] = le.fit_transform(combined[i])
 
@@ -189,6 +195,24 @@ for i in var_mod:
 # One Hot Coding to make a column for each of nominal value in a particular column :
 combined = pd.get_dummies(combined, columns=['Item_Fat_Content', 'Outlet_Location_Type', 'Outlet_Size', 'Outlet_Type',
                                              'Item_Type_Combined', 'Outlet'])
+
+# Corresponding Values
+# Item_Fat_Content0 - Low Fat
+# Item_Fat_Content1 - Regular
+# Item_Fat_Content2 - Non-Edible
+# Outlet_Location_Type0 - Tier 1
+# Outlet_Location_Type1 - Tier 2
+# Outlet_Location_Type2 - Tier 3
+# Outlet_Size0 - Medium
+# Outlet_Size1 - Small
+# Outlet_Size2 - High
+# Item_Type_Combined0 - Food
+# Item_Type_Combined1 - Non-Consumable
+# Item_Type_Combined2 - Drinks
+# Outlet_Type0 - Supermarket Type 1
+# Outlet_Type1 - Grocery Store
+# Outlet_Type2 - Supermarket Type 3
+# Outlet_Type3 - Supermarket Type 2
 
 
 combined.columns
@@ -223,7 +247,8 @@ train.drop(['source'], axis=1, inplace=True)
 train.to_csv(os.path.join("train_modified.csv"))
 test.to_csv(os.path.join("test_modified.csv"))
 
-
+train
+combined
 # Creating a function for model fitting
 # Define target and ID columns:
 target = 'Item_Outlet_Sales'
@@ -260,14 +285,16 @@ coef1 = pd.Series(alg1.coef_, predictors).sort_values()
 coef1
 coef1.plot(kind='bar', title='Model Coefficients')
 
+
 # Model Report
 # RMSE : 1127
 # CV Score : Mean - 1129 | Std - 43.58 | Min - 1075 | Max - 1211
 
 # Changing Predictors
-combined.columns
-predictors = ['Item_Weight', 'Item_MRP', 'Item_Fat_Content_0',
-              'Item_Fat_Content_1', 'Item_Fat_Content_2',
-              'Item_Type_Combined_0',
-              'Item_Type_Combined_1', 'Item_Type_Combined_2',  'Outlet_Type_1',
-              'Outlet_Type_2', 'Outlet_Type_3', 'Item_Visibility']
+predictors_lc = ['Item_Weight', 'Item_MRP', 'Item_Fat_Content_0',
+                 'Item_Fat_Content_1', 'Item_Fat_Content_2',
+                 'Item_Type_Combined_0',
+                 'Item_Type_Combined_1', 'Item_Type_Combined_2',  'Outlet_Type_1',
+                 'Outlet_Type_2', 'Outlet_Type_3', 'Item_Visibility']
+
+modelfit(alg1, train, test, predictors_lc, target, IDcol)
