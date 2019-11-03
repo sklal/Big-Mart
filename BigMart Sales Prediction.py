@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import mode
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import cross_validate
@@ -137,7 +139,7 @@ combined['Outlet_Size'].fillna(combined['Outlet_Size'].mode()[0], inplace=True)
 combined.apply(lambda x: sum(x.isnull()))
 
 
-# Visuals
+# Univariate Analysis
 
 plt.figure(figsize=(30, 8))
 Itemtype = combined['Item_Type_Combined'].value_counts()
@@ -173,9 +175,22 @@ sns.barplot(x=Outsize[:15].keys(),
 combined.columns
 combined.dtypes
 
-var_v = ['Item_Fat_Content', 'Outlet_Location_Type', 'Outlet_Size',
-         'Item_Type_Combined', 'Outlet_Type', 'Outlet_Establishment_Year']
+# Numerical Features
 
+numeric_features_combined = combined.select_dtypes(include=[np.number])
+numeric_features_combined.dtypes
+
+# Let's see the correlation between Numerical predictors and Target Variable
+corr_combined = numeric_features_combined.corr()
+corr_combined
+
+# Correlation with respect to our Target Variable
+
+print(corr_combined['Item_Outlet_Sales'].sort_values(ascending=False))
+
+# correlation matrix
+ax = plt.subplots(figsize=(10, 8))
+sns.heatmap(corr_combined, vmax=.8, square=True, cmap="Blues")
 
 # Coversion of Nominal Categorical variable into Numerical for Scikit Learn Library
 
@@ -279,9 +294,9 @@ def modelfit(alg, dtrain, dtest, predictors, target, IDcol):
 
 
 predictors = [x for x in train.columns if x not in [target]+IDcol]
-alg1 = LinearRegression(normalize=True)
-modelfit(alg1, train, test, predictors, target, IDcol)
-coef1 = pd.Series(alg1.coef_, predictors).sort_values()
+LR = LinearRegression(alpha=0.05, normalize=True)
+modelfit(LR, train, test, predictors, target, IDcol)
+coef1 = pd.Series(LR.coef_, predictors).sort_values()
 coef1
 coef1.plot(kind='bar', title='Model Coefficients')
 
@@ -290,11 +305,53 @@ coef1.plot(kind='bar', title='Model Coefficients')
 # RMSE : 1127
 # CV Score : Mean - 1129 | Std - 43.58 | Min - 1075 | Max - 1211
 
-# Changing Predictors
-predictors_lc = ['Item_Weight', 'Item_MRP', 'Item_Fat_Content_0',
-                 'Item_Fat_Content_1', 'Item_Fat_Content_2',
-                 'Item_Type_Combined_0',
-                 'Item_Type_Combined_1', 'Item_Type_Combined_2',  'Outlet_Type_1',
-                 'Outlet_Type_2', 'Outlet_Type_3', 'Item_Visibility']
+# Ridge Regression
+RR = Ridge(alpha=0.05, normalize=True)
+modelfit(RR, train, test, predictors, target, IDcol)
+coef2 = pd.Series(RR.coef_, predictors).sort_values()
+coef2
+coef2.plot(kind='bar', title='Model Coefficients')
 
-modelfit(alg1, train, test, predictors_lc, target, IDcol)
+# Model Report
+# RMSE : 1128
+# CV Score : Mean - 1130 | Std - 44.81 | Min - 1076 | Max - 1218
+
+# Decision Tree
+
+predictors = [x for x in train.columns if x not in [target]+IDcol]
+DT = DecisionTreeRegressor(max_depth=15, min_samples_leaf=100)
+modelfit(DT, train, test, predictors, target, IDcol)
+coef3 = pd.Series(DT.feature_importances_,
+                  predictors).sort_values(ascending=False)
+coef3.plot(kind='bar', title='Feature Importances')
+
+# Model Report
+# RMSE : 1059
+# CV Score : Mean - 1092 | Std - 45.05 | Min - 1016 | Max - 1180
+
+
+# Tuning the predictors to Item_MRP,Outlet_Type0,Outlet_5,Outlet_Establishment_Year
+predictors = ['Item_MRP', 'Outlet_Type_0', 'Outlet_5']
+DTm = DecisionTreeRegressor(max_depth=15, min_samples_leaf=100)
+modelfit(DTm, train, test, predictors, target, IDcol)
+coef3m = pd.Series(DTm.feature_importances_,
+                   predictors).sort_values(ascending=False)
+coef3m.plot(kind='bar', title='Feature Importances')
+
+# Model Report
+# RMSE : 1067
+# CV Score : Mean - 1090 | Std - 43.68 | Min - 1024 | Max - 1170
+
+# Random Forest
+
+predictors = [x for x in train.columns if x not in [target]+IDcol]
+RF = RandomForestRegressor(
+    n_estimators=200, max_depth=5, min_samples_leaf=100, n_jobs=4)
+modelfit(RF, train, test, predictors, target, IDcol)
+coef5 = pd.Series(RF.feature_importances_,
+                  predictors).sort_values(ascending=False)
+coef5.plot(kind='bar', title='Feature Importances')
+
+# Model Report
+# RMSE : 1073
+# CV Score : Mean - 1083 | Std - 43.99 | Min - 1019 | Max - 1160
